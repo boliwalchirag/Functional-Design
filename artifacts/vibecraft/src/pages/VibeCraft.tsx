@@ -27,12 +27,7 @@ const TRACKS = [
   },
 ];
 
-const QUOTES = [
-  { text: "Focus is not about saying yes, it's about saying no to a thousand things.", author: "Steve Jobs" },
-  { text: "The key is not to prioritize what's on your schedule, but to schedule your priorities.", author: "Stephen Covey" },
-  { text: "Deep work is the ability to focus without distraction on a cognitively demanding task.", author: "Cal Newport" },
-  { text: "Concentrate all your thoughts upon the work at hand. The sun's rays do not burn until brought to a focus.", author: "Alexander Graham Bell" },
-];
+const FALLBACK_QUOTE = { text: "Focus is not about saying yes, it's about saying no to a thousand things.", author: "Steve Jobs" };
 
 const PRESETS = [
   { label: "25/5", work: 25, rest: 5 },
@@ -87,7 +82,24 @@ export default function VibeCraft() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [newTask, setNewTask] = useState("");
 
-  const [quoteIdx, setQuoteIdx] = useState(0);
+  const [quote, setQuote] = useState(FALLBACK_QUOTE);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  const fetchQuote = useCallback(async () => {
+    setQuoteLoading(true);
+    try {
+      const res = await fetch("https://dummyjson.com/quotes/random");
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      setQuote({ text: data.quote, author: data.author });
+    } catch {
+      setQuote(FALLBACK_QUOTE);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchQuote(); }, [fetchQuote]);
 
   const track = TRACKS[trackIdx];
   const totalDuration = track.duration;
@@ -213,7 +225,6 @@ export default function VibeCraft() {
   const dashOffset = circumference * (1 - timerPct);
 
   const completedTasks = tasks.filter((t) => t.done).length;
-  const quote = QUOTES[quoteIdx];
 
   const navItems = ["Focus", "Music", "Tasks", "Stats"];
 
@@ -646,22 +657,54 @@ export default function VibeCraft() {
               background: "linear-gradient(135deg, var(--secondary-container) 0%, var(--on-secondary-fixed-variant) 100%)",
               borderRadius: 24, padding: 32,
               display: "flex", flexDirection: "column", justifyContent: "space-between",
-              color: "#e1c6fa", cursor: "pointer"
+              color: "#e1c6fa", minHeight: 220
             }}
             className="quote-section"
-            onClick={() => setQuoteIdx((i) => (i + 1) % QUOTES.length)}
-            title="Click for next quote"
           >
             <style>{`@media(min-width:768px){.quote-section{grid-column:span 4!important}}`}</style>
-            <Icon name="format_quote" style={{ fontSize: 40, marginBottom: 24, opacity: 0.4 } as React.CSSProperties} />
-            <div>
-              <p className="font-headline" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.4, marginBottom: 16 }}>
-                {quote.text}
-              </p>
-              <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", opacity: 0.6 }}>
-                — {quote.author}
-              </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <Icon name="format_quote" style={{ fontSize: 40, opacity: 0.4 } as React.CSSProperties} />
+              <button
+                onClick={fetchQuote}
+                disabled={quoteLoading}
+                title="Fetch new quote"
+                style={{
+                  background: "rgba(255,255,255,0.12)", border: "none", cursor: quoteLoading ? "default" : "pointer",
+                  width: 36, height: 36, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#e1c6fa", transition: "background 0.2s, transform 0.4s",
+                  transform: quoteLoading ? "rotate(360deg)" : "rotate(0deg)",
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => { if (!quoteLoading) (e.currentTarget.style.background = "rgba(255,255,255,0.22)"); }}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
+              >
+                <Icon name="refresh" style={{ fontSize: 20, animation: quoteLoading ? "spin 0.7s linear infinite" : "none" } as React.CSSProperties} />
+              </button>
             </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              {quoteLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ height: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, width: "90%", animation: "pulse 1.2s ease-in-out infinite" }} />
+                  <div style={{ height: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, width: "75%", animation: "pulse 1.2s ease-in-out infinite" }} />
+                  <div style={{ height: 16, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, width: "60%", animation: "pulse 1.2s ease-in-out infinite" }} />
+                  <div style={{ height: 11, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 6, width: "40%", marginTop: 12, animation: "pulse 1.2s ease-in-out infinite" }} />
+                </div>
+              ) : (
+                <>
+                  <p className="font-headline" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.4, marginBottom: 16 }}>
+                    {quote.text}
+                  </p>
+                  <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", opacity: 0.6 }}>
+                    — {quote.author}
+                  </p>
+                </>
+              )}
+            </div>
+            <style>{`
+              @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+              @keyframes pulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+            `}</style>
           </section>
 
         </div>
