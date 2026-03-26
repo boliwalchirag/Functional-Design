@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "VibeCraft | Digital Sanctuary"
+version = "1.0.0"
+id = "artifacts/vibecraft"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22815
+
+[services.development]
+run = "pnpm --filter @workspace/vibecraft run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vibecraft", "run", "build" ]
+publicDir = "artifacts/vibecraft/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22815"
+BASE_PATH = "/"

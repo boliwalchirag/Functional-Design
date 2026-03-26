@@ -1,0 +1,722 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const TRACKS = [
+  {
+    title: "Midnight Coffee Beats",
+    artist: "Lofi Girl",
+    desc: "Soulful chillhop for deep work",
+    listeners: "48k Listening",
+    albumArt: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUP7zyGo7S26rRVqoatj_5yr-IhGYZHyz6ZNb951uiDNwbtcra4_GPZ0zt7QUfKdU-uamc1Cu8c4E3hFhaV0NK4AMZM5tCRDmEDhKmCWgjnSg-Ycq6r9_lb9DEeXbsy0fkhoV5x7feuPoAe4chxjeMD1OoKZhCuSLZ-n5hloPNKLGeTB30a0SXjvDtvOv7KcmACdgkrZUTYqbz9gfTMpJmCGA0Ve8jlwsnHQMCvrPUWXVpOILK__F-9w6JmWn_f_rvavbfgcCOz3cf",
+    duration: 2300,
+  },
+  {
+    title: "Rain on Glass",
+    artist: "Chillhop Music",
+    desc: "Ambient focus session",
+    listeners: "32k Listening",
+    albumArt: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=300&h=300&fit=crop",
+    duration: 2100,
+  },
+  {
+    title: "3am Study Session",
+    artist: "Dreamy Beats",
+    desc: "Late night productivity",
+    listeners: "21k Listening",
+    albumArt: "https://images.unsplash.com/photo-1519683109079-d5f539e1542f?w=300&h=300&fit=crop",
+    duration: 1980,
+  },
+];
+
+const QUOTES = [
+  { text: "Focus is not about saying yes, it's about saying no to a thousand things.", author: "Steve Jobs" },
+  { text: "The key is not to prioritize what's on your schedule, but to schedule your priorities.", author: "Stephen Covey" },
+  { text: "Deep work is the ability to focus without distraction on a cognitively demanding task.", author: "Cal Newport" },
+  { text: "Concentrate all your thoughts upon the work at hand. The sun's rays do not burn until brought to a focus.", author: "Alexander Graham Bell" },
+];
+
+const PRESETS = [
+  { label: "25/5", work: 25, rest: 5 },
+  { label: "50/10", work: 50, rest: 10 },
+  { label: "90/15", work: 90, rest: 15 },
+  { label: "45m", work: 45, rest: 10, starred: true },
+];
+
+interface Task {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+const INITIAL_TASKS: Task[] = [
+  { id: "1", text: "Research Lofi visual aesthetic trends", done: true },
+  { id: "2", text: "Develop Pomodoro SVG logic", done: false },
+  { id: "3", text: "Review Bento Grid implementation", done: false },
+  { id: "4", text: "Write focus session recap", done: false },
+  { id: "5", text: "Explore ambient soundscapes", done: true },
+];
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
+}
+
+export default function VibeCraft() {
+  const [activeNav, setActiveNav] = useState("Focus");
+  const [themeForest, setThemeForest] = useState(false);
+
+  const [trackIdx, setTrackIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(765);
+  const [volume, setVolume] = useState(75);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+
+  const [timerMode, setTimerMode] = useState<"work" | "break">("work");
+  const [timerPreset, setTimerPreset] = useState(PRESETS[0]);
+  const [timerSeconds, setTimerSeconds] = useState(25 * 60);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [sessionsToday, setSessionsToday] = useState(4);
+  const [focusMinutesToday, setFocusMinutesToday] = useState(100);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [newTask, setNewTask] = useState("");
+
+  const [quoteIdx, setQuoteIdx] = useState(0);
+
+  const track = TRACKS[trackIdx];
+  const totalDuration = track.duration;
+  const progressPct = (progress / totalDuration) * 100;
+
+  useEffect(() => {
+    if (themeForest) {
+      document.body.classList.add("theme-forest");
+    } else {
+      document.body.classList.remove("theme-forest");
+    }
+  }, [themeForest]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setProgress((p) => {
+          if (p >= totalDuration - 1) {
+            handleNextTrack();
+            return 0;
+          }
+          return p + 1;
+        });
+      }, 1000);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [isPlaying, totalDuration]);
+
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => {
+        setTimerSeconds((s) => {
+          if (s <= 1) {
+            clearInterval(timerRef.current!);
+            setTimerRunning(false);
+            if (timerMode === "work") {
+              setSessionsToday((n) => n + 1);
+              setFocusMinutesToday((m) => m + timerPreset.work);
+              setTimerMode("break");
+              return timerPreset.rest * 60;
+            } else {
+              setTimerMode("work");
+              return timerPreset.work * 60;
+            }
+          }
+          return s - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerRunning, timerMode, timerPreset]);
+
+  const handleNextTrack = useCallback(() => {
+    if (shuffle) {
+      setTrackIdx(Math.floor(Math.random() * TRACKS.length));
+    } else {
+      setTrackIdx((i) => (i + 1) % TRACKS.length);
+    }
+    setProgress(0);
+  }, [shuffle]);
+
+  const handlePrevTrack = () => {
+    if (progress > 5) {
+      setProgress(0);
+    } else {
+      setTrackIdx((i) => (i - 1 + TRACKS.length) % TRACKS.length);
+      setProgress(0);
+    }
+  };
+
+  const handleTimerReset = () => {
+    setTimerRunning(false);
+    setTimerSeconds(timerPreset.work * 60);
+    setTimerMode("work");
+  };
+
+  const handlePresetChange = (preset: typeof PRESETS[0]) => {
+    setTimerPreset(preset);
+    setTimerRunning(false);
+    setTimerSeconds(preset.work * 60);
+    setTimerMode("work");
+  };
+
+  const handleToggleTask = (id: string) => {
+    setTasks((ts) => ts.map((t) => t.id === id ? { ...t, done: !t.done } : t));
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks((ts) => ts.filter((t) => t.id !== id));
+  };
+
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    setTasks((ts) => [...ts, { id: Date.now().toString(), text: newTask.trim(), done: false }]);
+    setNewTask("");
+  };
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        setIsPlaying((p) => !p);
+      }
+      if (e.shiftKey && e.key === "R") {
+        handleTimerReset();
+      }
+      if (e.altKey && e.key === "t") {
+        setThemeForest((f) => !f);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  const timerTotal = timerMode === "work" ? timerPreset.work * 60 : timerPreset.rest * 60;
+  const timerPct = 1 - timerSeconds / timerTotal;
+  const circumference = 2 * Math.PI * 100;
+  const dashOffset = circumference * (1 - timerPct);
+
+  const completedTasks = tasks.filter((t) => t.done).length;
+  const quote = QUOTES[quoteIdx];
+
+  const navItems = ["Focus", "Music", "Tasks", "Stats"];
+
+  return (
+    <div style={{ backgroundColor: "var(--background)", color: "var(--on-surface)", minHeight: "100vh" }}>
+      {/* Header */}
+      <header style={{
+        position: "fixed", top: 0, width: "100%", zIndex: 50,
+        backgroundColor: "rgba(14,14,14,0.85)", backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255,255,255,0.04)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 2rem", maxWidth: 1440, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="font-headline" style={{ fontSize: 24, fontWeight: 900, color: "#957DAD", letterSpacing: "-0.05em" }}>VibeCraft</span>
+          </div>
+          <nav style={{ display: "flex", gap: 32, alignItems: "center" }}>
+            {navItems.map((item) => (
+              <button
+                key={item}
+                onClick={() => setActiveNav(item)}
+                className="font-headline"
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em",
+                  color: activeNav === item ? "#957DAD" : "#6b7280",
+                  borderBottom: activeNav === item ? "2px solid #957DAD" : "2px solid transparent",
+                  paddingBottom: 4, transition: "color 0.2s"
+                }}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setThemeForest((f) => !f)}
+              title="Switch Theme (Alt+T)"
+              style={{ padding: 8, background: "none", border: "none", cursor: "pointer", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+            >
+              <Icon name={themeForest ? "forest" : "brightness_6"} className="" style={{ color: "#957DAD", fontSize: 22 } as React.CSSProperties} />
+            </button>
+            <button
+              style={{ padding: 8, background: "none", border: "none", cursor: "pointer", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+            >
+              <Icon name="palette" style={{ color: "#957DAD", fontSize: 22 } as React.CSSProperties} />
+            </button>
+            <button
+              style={{ padding: 8, background: "none", border: "none", cursor: "pointer", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+            >
+              <Icon name="settings" style={{ color: "#957DAD", fontSize: 22 } as React.CSSProperties} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main style={{ paddingTop: 96, paddingBottom: 48, paddingLeft: 24, paddingRight: 24, maxWidth: 1440, margin: "0 auto" }}>
+        <div className="bento-grid">
+
+          {/* Music Player Module */}
+          <section style={{
+            gridColumn: "span 12",
+            backgroundColor: "var(--surface-container)",
+            borderRadius: 24, overflow: "hidden", position: "relative"
+          }}
+            className="music-player-section"
+          >
+            <style>{`@media(min-width:1024px){.music-player-section{grid-column:span 8!important}}`}</style>
+            {/* Ambient gradient */}
+            <div style={{
+              position: "absolute", inset: 0, zIndex: 0,
+              background: "radial-gradient(ellipse at top left, rgba(83,62,105,0.4) 0%, rgba(216,146,39,0.1) 100%)",
+              filter: "blur(40px)", transform: "scale(1.1)", opacity: 0.5
+            }} />
+            <div style={{ position: "relative", zIndex: 1, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }} className="music-inner">
+              <style>{`@media(min-width:768px){.music-inner{flex-direction:row!important}}`}</style>
+
+              {/* Album Art */}
+              <div style={{ width: 240, height: 240, borderRadius: 16, overflow: "hidden", flexShrink: 0, boxShadow: "0 25px 50px rgba(0,0,0,0.5)", position: "relative" }} className="album-art">
+                <style>{`@media(min-width:768px){.album-art{width:256px!important;height:256px!important}}`}</style>
+                <img
+                  src={track.albumArt}
+                  alt="Album Art"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+                <div
+                  onClick={() => setIsPlaying((p) => !p)}
+                  style={{
+                    position: "absolute", inset: 0,
+                    background: "rgba(0,0,0,0.3)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    opacity: 0, transition: "opacity 0.2s", cursor: "pointer"
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+                >
+                  <Icon name={isPlaying ? "pause_circle" : "play_circle"} style={{ fontSize: 64, color: "white" } as React.CSSProperties} />
+                </div>
+              </div>
+
+              {/* Player Controls */}
+              <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", paddingTop: 8, paddingBottom: 8 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{
+                      background: "rgba(226,199,252,0.1)", color: "#e2c7fc",
+                      fontSize: 10, fontWeight: 700, letterSpacing: "0.15em",
+                      textTransform: "uppercase", padding: "4px 8px", borderRadius: 8
+                    }}>Now Playing</span>
+                    <span style={{ color: "var(--on-surface-variant)", fontSize: 12, fontWeight: 500 }}>{track.artist} • {track.listeners}</span>
+                  </div>
+                  <h2 className="font-headline" style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>{track.title}</h2>
+                  <p style={{ color: "var(--on-surface-variant)", fontWeight: 500 }}>{track.desc}</p>
+                </div>
+                <div style={{ marginTop: 32 }}>
+                  {/* Progress Bar */}
+                  <div
+                    style={{ width: "100%", height: 6, backgroundColor: "var(--surface-container-highest)", borderRadius: 999, overflow: "hidden", cursor: "pointer" }}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const pct = (e.clientX - rect.left) / rect.width;
+                      setProgress(Math.floor(pct * totalDuration));
+                    }}
+                  >
+                    <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "var(--primary)", borderRadius: 999, transition: "width 0.5s linear" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontFamily: "monospace", color: "var(--on-surface-variant)", marginTop: 4 }}>
+                    <span>{formatTime(progress)}</span>
+                    <span>{formatTime(totalDuration)}</span>
+                  </div>
+
+                  {/* Controls Row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                      <button
+                        onClick={() => setShuffle((s) => !s)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: shuffle ? "var(--primary)" : "var(--on-surface-variant)", transition: "color 0.2s" }}
+                      >
+                        <Icon name="shuffle" style={{ fontSize: 22 } as React.CSSProperties} />
+                      </button>
+                      <button onClick={handlePrevTrack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--on-surface)", fontSize: 22 }}>
+                        <Icon name="skip_previous" style={{ fontSize: 28 } as React.CSSProperties} />
+                      </button>
+                      <button
+                        onClick={() => setIsPlaying((p) => !p)}
+                        style={{
+                          width: 56, height: 56, backgroundColor: "var(--primary)", color: "var(--on-primary)",
+                          borderRadius: "50%", border: "none", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          boxShadow: "0 8px 24px rgba(254,178,70,0.3)", transition: "transform 0.1s"
+                        }}
+                        onMouseDown={e => (e.currentTarget.style.transform = "scale(0.9)")}
+                        onMouseUp={e => (e.currentTarget.style.transform = "scale(1)")}
+                      >
+                        <Icon name={isPlaying ? "pause" : "play_arrow"} style={{ fontSize: 28, fontVariationSettings: "'FILL' 1, 'wght' 400" } as React.CSSProperties} />
+                      </button>
+                      <button onClick={handleNextTrack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--on-surface)", fontSize: 22 }}>
+                        <Icon name="skip_next" style={{ fontSize: 28 } as React.CSSProperties} />
+                      </button>
+                      <button
+                        onClick={() => setRepeat((r) => !r)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: repeat ? "var(--primary)" : "var(--on-surface-variant)", transition: "color 0.2s" }}
+                      >
+                        <Icon name="repeat" style={{ fontSize: 22 } as React.CSSProperties} />
+                      </button>
+                    </div>
+
+                    {/* Volume */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Icon name="volume_up" style={{ color: "var(--on-surface-variant)", fontSize: 20 } as React.CSSProperties} />
+                      <div
+                        style={{ width: 96, height: 4, backgroundColor: "var(--surface-container-highest)", borderRadius: 999, cursor: "pointer", position: "relative" }}
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setVolume(Math.round(((e.clientX - rect.left) / rect.width) * 100));
+                        }}
+                      >
+                        <div style={{ height: "100%", width: `${volume}%`, backgroundColor: "var(--on-surface-variant)", borderRadius: 999 }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Pomodoro Timer */}
+          <section style={{
+            gridColumn: "span 12",
+            backgroundColor: "var(--surface-container)",
+            borderRadius: 24, padding: 32,
+            display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", textAlign: "center", position: "relative", overflow: "hidden"
+          }} className="pomodoro-section">
+            <style>{`@media(min-width:1024px){.pomodoro-section{grid-column:span 4!important}}`}</style>
+            <div style={{ position: "absolute", top: -48, right: -48, width: 128, height: 128, backgroundColor: "rgba(255,148,162,0.1)", borderRadius: "50%", filter: "blur(40px)" }} />
+
+            <div style={{ marginBottom: 16 }}>
+              <span style={{
+                padding: "6px 16px", borderRadius: 999,
+                backgroundColor: timerMode === "work" ? "rgba(253,126,145,0.2)" : "rgba(254,178,70,0.2)",
+                color: timerMode === "work" ? "var(--tertiary)" : "var(--primary)",
+                fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase"
+              }}>
+                {timerMode === "work" ? "Focus State" : "Break Time"}
+              </span>
+            </div>
+
+            {/* SVG Ring */}
+            <div style={{ position: "relative", width: 224, height: 224, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                <circle cx="112" cy="112" r="100" fill="transparent" stroke="var(--surface-container-highest)" strokeWidth="8" />
+                <circle
+                  cx="112" cy="112" r="100" fill="transparent"
+                  stroke={timerMode === "work" ? "var(--tertiary)" : "var(--primary)"}
+                  strokeWidth="8"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke-dashoffset 0.5s linear" }}
+                />
+              </svg>
+              <span className="font-headline" style={{ fontSize: 56, fontWeight: 900, position: "relative", zIndex: 1 }}>
+                {formatTime(timerSeconds)}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: 16, marginTop: 32 }}>
+              <button
+                onClick={handleTimerReset}
+                title="Reset (Shift+R)"
+                style={{
+                  backgroundColor: "var(--surface-container-highest)", border: "none", cursor: "pointer",
+                  padding: "12px 24px", borderRadius: 999, fontWeight: 700,
+                  color: "var(--on-surface)", display: "flex", alignItems: "center", gap: 8, transition: "background 0.2s"
+                }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "var(--surface-bright)")}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "var(--surface-container-highest)")}
+              >
+                <Icon name="refresh" style={{ fontSize: 20 } as React.CSSProperties} />
+              </button>
+              <button
+                onClick={() => setTimerRunning((r) => !r)}
+                style={{
+                  backgroundColor: timerMode === "work" ? "var(--tertiary)" : "var(--primary)",
+                  color: timerMode === "work" ? "var(--on-tertiary)" : "var(--on-primary)",
+                  border: "none", cursor: "pointer",
+                  padding: "12px 40px", borderRadius: 999, fontWeight: 900, fontSize: 18,
+                  boxShadow: timerMode === "work" ? "0 8px 24px rgba(255,148,162,0.2)" : "0 8px 24px rgba(254,178,70,0.2)",
+                  transition: "transform 0.1s"
+                }}
+              >
+                {timerRunning ? "Pause" : "Start"}
+              </button>
+            </div>
+
+            {/* Presets */}
+            <div style={{ width: "100%", marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "0 8px" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--on-surface-variant)", opacity: 0.6 }}>Presets</span>
+                <button style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}>
+                  <Icon name="add_circle" style={{ fontSize: 14 } as React.CSSProperties} /> Add Custom
+                </button>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
+                {PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => handlePresetChange(preset)}
+                    style={{
+                      padding: "6px 12px", borderRadius: 999,
+                      backgroundColor: timerPreset.label === preset.label ? "rgba(254,178,70,0.1)" : "var(--surface-container-highest)",
+                      border: timerPreset.label === preset.label ? "1px solid rgba(254,178,70,0.3)" : "1px solid rgba(72,72,71,0.3)",
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      color: timerPreset.label === preset.label ? "var(--primary)" : "var(--on-surface)",
+                      display: "flex", alignItems: "center", gap: 4, transition: "all 0.2s"
+                    }}
+                  >
+                    {preset.starred && <Icon name="star" style={{ fontSize: 12 } as React.CSSProperties} />}
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Session Stats */}
+            <div style={{ display: "flex", gap: 24, marginTop: 20, color: "var(--on-surface-variant)", fontSize: 14, fontWeight: 500 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ color: "var(--on-surface)", fontWeight: 700, fontSize: 18 }}>{String(sessionsToday).padStart(2, "0")}</span>
+                <span>Sessions</span>
+              </div>
+              <div style={{ width: 1, height: 32, backgroundColor: "var(--outline-variant)" }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ color: "var(--on-surface)", fontWeight: 700, fontSize: 18 }}>{Math.floor(focusMinutesToday / 60)}h {focusMinutesToday % 60}m</span>
+                <span>Today</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Shortcuts Panel */}
+          <section style={{
+            gridColumn: "span 12",
+            backgroundColor: "var(--surface-container-low)",
+            borderRadius: 24, padding: 24,
+            border: "1px solid rgba(255,255,255,0.05)"
+          }} className="shortcuts-section">
+            <style>{`@media(min-width:768px){.shortcuts-section{grid-column:span 4!important}}`}</style>
+            <h3 className="font-headline" style={{ fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="keyboard" style={{ color: "var(--primary)" } as React.CSSProperties} />
+              Shortcuts
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                { action: "Play / Pause", key: "Space" },
+                { action: "Reset Timer", key: "Shift + R" },
+                { action: "New Task", key: "Ctrl + N" },
+                { action: "Switch Theme", key: "Alt + T" },
+              ].map(({ action, key }) => (
+                <div key={action} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}>
+                  <span style={{ color: "var(--on-surface-variant)" }}>{action}</span>
+                  <kbd style={{
+                    padding: "4px 8px", backgroundColor: "var(--surface-container-highest)",
+                    borderRadius: 8, border: "1px solid var(--outline-variant)",
+                    fontSize: 10, fontFamily: "monospace", color: "var(--on-surface)"
+                  }}>{key}</kbd>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Task Management */}
+          <section style={{
+            gridColumn: "span 12",
+            backgroundColor: "var(--surface-container)",
+            borderRadius: 24, padding: 32
+          }} className="tasks-section">
+            <style>{`@media(min-width:768px){.tasks-section{grid-column:span 8!important}}`}</style>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+              <div>
+                <h3 className="font-headline" style={{ fontWeight: 900, fontSize: 24 }}>Focus Quests</h3>
+                <p style={{ color: "var(--on-surface-variant)", fontSize: 14, marginTop: 4 }}>
+                  {completedTasks} of {tasks.length} completed today
+                </p>
+              </div>
+              <button style={{ padding: 8, background: "none", border: "none", cursor: "pointer", color: "var(--on-surface-variant)", borderRadius: 12 }}>
+                <Icon name="filter_list" style={{ fontSize: 22 } as React.CSSProperties} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 16,
+                    backgroundColor: "var(--surface-container-low)",
+                    padding: "16px", borderRadius: 16, transition: "background 0.2s", cursor: "default"
+                  }}
+                  className="task-row"
+                  onMouseEnter={e => {
+                    (e.currentTarget.style.backgroundColor = "var(--surface-container-high)");
+                    const btn = e.currentTarget.querySelector(".task-delete") as HTMLElement;
+                    if (btn) btn.style.opacity = "1";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget.style.backgroundColor = "var(--surface-container-low)");
+                    const btn = e.currentTarget.querySelector(".task-delete") as HTMLElement;
+                    if (btn) btn.style.opacity = "0";
+                  }}
+                >
+                  <button
+                    onClick={() => handleToggleTask(task.id)}
+                    style={{
+                      width: 24, height: 24, borderRadius: 8,
+                      border: task.done ? "2px solid var(--primary)" : "2px solid var(--outline-variant)",
+                      backgroundColor: task.done ? "var(--primary)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", flexShrink: 0, transition: "all 0.2s"
+                    }}
+                  >
+                    {task.done && <Icon name="check" style={{ fontSize: 14, color: "var(--on-primary)", fontWeight: 900 } as React.CSSProperties} />}
+                  </button>
+                  <span style={{
+                    flex: 1, fontWeight: 500,
+                    color: task.done ? "var(--on-surface-variant)" : "var(--on-surface)",
+                    textDecoration: task.done ? "line-through" : "none"
+                  }}>
+                    {task.text}
+                  </span>
+                  <button
+                    className="task-delete"
+                    onClick={() => handleDeleteTask(task.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--on-surface-variant)", opacity: 0, transition: "opacity 0.2s" }}
+                  >
+                    <Icon name="delete" style={{ fontSize: 20 } as React.CSSProperties} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleAddTask} style={{ position: "relative" }}>
+              <input
+                type="text"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                placeholder="Add a new focus quest..."
+                style={{
+                  width: "100%", backgroundColor: "var(--surface-container-highest)",
+                  border: "none", borderRadius: 16, padding: "16px 16px 16px 48px",
+                  color: "var(--on-surface)", fontSize: 15, outline: "none",
+                  transition: "box-shadow 0.2s"
+                }}
+                onFocus={e => (e.currentTarget.style.boxShadow = "0 0 0 2px rgba(254,178,70,0.5)")}
+                onBlur={e => (e.currentTarget.style.boxShadow = "none")}
+              />
+              <Icon name="add" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--primary)", fontSize: 22 } as React.CSSProperties} />
+            </form>
+          </section>
+
+          {/* Motivational Quote */}
+          <section
+            style={{
+              gridColumn: "span 12",
+              background: "linear-gradient(135deg, var(--secondary-container) 0%, var(--on-secondary-fixed-variant) 100%)",
+              borderRadius: 24, padding: 32,
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+              color: "#e1c6fa", cursor: "pointer"
+            }}
+            className="quote-section"
+            onClick={() => setQuoteIdx((i) => (i + 1) % QUOTES.length)}
+            title="Click for next quote"
+          >
+            <style>{`@media(min-width:768px){.quote-section{grid-column:span 4!important}}`}</style>
+            <Icon name="format_quote" style={{ fontSize: 40, marginBottom: 24, opacity: 0.4 } as React.CSSProperties} />
+            <div>
+              <p className="font-headline" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.4, marginBottom: 16 }}>
+                {quote.text}
+              </p>
+              <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", opacity: 0.6 }}>
+                — {quote.author}
+              </p>
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+      {/* FAB Buttons */}
+      <div style={{ position: "fixed", bottom: 32, right: 32, zIndex: 50, display: "flex", flexDirection: "column", gap: 16 }}>
+        <button
+          onClick={() => setThemeForest((f) => !f)}
+          className="glass"
+          style={{
+            width: 56, height: 56, border: "none", cursor: "pointer",
+            color: "#e2c7fc", borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)", transition: "all 0.2s"
+          }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = "var(--surface-bright)")}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = "")}
+        >
+          <Icon name={themeForest ? "wb_sunny" : "dark_mode"} style={{ fontSize: 24 } as React.CSSProperties} />
+        </button>
+        <button
+          onClick={() => setIsPlaying((p) => !p)}
+          style={{
+            width: 56, height: 56, backgroundColor: "var(--primary)", color: "var(--on-primary)",
+            borderRadius: "50%", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 8px 32px rgba(254,178,70,0.3)", transition: "transform 0.2s"
+          }}
+          onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.1)")}
+          onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          <Icon name="bolt" style={{ fontSize: 24 } as React.CSSProperties} />
+        </button>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav style={{
+        display: "none", position: "fixed", bottom: 0, left: 0, width: "100%",
+        backgroundColor: "#1a1a1a", padding: 16,
+        justifyContent: "space-around", alignItems: "center",
+        borderTop: "1px solid rgba(255,255,255,0.05)", zIndex: 50
+      }} className="mobile-nav">
+        <style>{`@media(max-width:768px){.mobile-nav{display:flex!important}}`}</style>
+        {[
+          { icon: "dashboard", label: "Focus" },
+          { icon: "subscriptions", label: "Music" },
+          { icon: "waves", label: "Tasks" },
+          { icon: "settings", label: "Settings" },
+        ].map(({ icon, label }) => (
+          <button key={icon} onClick={() => setActiveNav(label)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <Icon name={icon} style={{ color: activeNav === label ? "var(--primary)" : "var(--on-surface-variant)", fontSize: 24 } as React.CSSProperties} />
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}

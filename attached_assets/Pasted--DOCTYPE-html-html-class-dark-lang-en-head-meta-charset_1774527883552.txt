@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VibeCraft | Digital Sanctuary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#d89227",
+                        "surface-container-highest": "#262626",
+                        "surface-container": "#1a1a1a",
+                        "surface-variant": "#262626",
+                        "secondary": "#e2c7fc",
+                        "secondary-dim": "#d4b9ed",
+                        "on-secondary-fixed-variant": "#5d4774",
+                        "primary-fixed": "#feb246",
+                        "primary": "#feb246",
+                        "outline-variant": "#484847",
+                        "on-primary-container": "#341e00",
+                        "surface-container-high": "#20201f",
+                        "secondary-container": "#533e69",
+                        "primary-dim": "#eea439",
+                        "tertiary-dim": "#f47789",
+                        "on-primary-fixed-variant": "#623d00",
+                        "on-tertiary": "#680923",
+                        "inverse-primary": "#855500",
+                        "outline": "#767575",
+                        "on-secondary-fixed": "#3f2b55",
+                        "surface-bright": "#2c2c2c",
+                        "tertiary-fixed": "#ff909e",
+                        "primary-fixed-dim": "#eea439",
+                        "on-surface": "#ffffff",
+                        "on-primary": "#563500",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary-fixed-variant": "#71122a",
+                        "on-tertiary-container": "#57001a",
+                        "on-primary-fixed": "#3a2300",
+                        "surface-tint": "#feb246",
+                        "tertiary-fixed-dim": "#fa7c8e",
+                        "on-secondary-container": "#e1c6fa",
+                        "tertiary-container": "#fd7e91",
+                        "inverse-on-surface": "#565555",
+                        "surface-dim": "#0e0e0e",
+                        "error-container": "#a70138",
+                        "on-surface-variant": "#adaaaa",
+                        "on-background": "#ffffff",
+                        "inverse-surface": "#fcf9f8",
+                        "tertiary": "#ff94a2",
+                        "on-error": "#490013",
+                        "secondary-fixed-dim": "#d4b9ed",
+                        "background": "#0e0e0e",
+                        "on-error-container": "#ffb2b9",
+                        "secondary-fixed": "#e2c7fc",
+                        "error-dim": "#d73357",
+                        "error": "#ff6e84",
+                        "surface": "#0e0e0e",
+                        "surface-container-low": "#131313",
+                        "on-tertiary-fixed": "#39000e",
+                        "on-secondary": "#533e6a"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass {
+            background: rgba(38, 38, 38, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2rem;
+        }
+    </style>
+<style>
+  :root {
+    --forest-bg: #0a1a12;
+    --forest-primary: #8fb996;
+    --forest-secondary: #c1d7ae;
+    --forest-surface: #12261b;
+    --forest-surface-container: #1a3325;
+  }
+
+  body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.theme-forest {
+    background-color: var(--forest-bg) !important;
+  }
+
+  body.theme-forest .bg-surface {
+    background-color: var(--forest-bg) !important;
+  }
+
+  body.theme-forest .bg-surface-container {
+    background-color: var(--forest-surface-container) !important;
+  }
+
+  body.theme-forest .text-primary, 
+  body.theme-forest .text-[#957DAD] {
+    color: var(--forest-primary) !important;
+  }
+
+  body.theme-forest .bg-primary {
+    background-color: var(--forest-primary) !important;
+  }
+
+  body.theme-forest .border-[#957DAD] {
+    border-color: var(--forest-primary) !important;
+  }
+</style></head>
+<body class="bg-surface text-on-surface selection:bg-secondary/30">
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full z-50 bg-[#0e0e0e]/80 backdrop-blur-md">
+<div class="flex justify-between items-center px-8 py-4 w-full max-w-[1440px] mx-auto">
+<div class="flex items-center gap-2">
+<span class="text-2xl font-black text-[#957DAD] tracking-tighter font-headline">VibeCraft</span>
+</div>
+<nav class="hidden md:flex gap-8 items-center">
+<a class="text-[#957DAD] border-b-2 border-[#957DAD] pb-1 font-headline font-bold tracking-tight" href="#">Focus</a>
+<a class="text-gray-500 hover:text-gray-300 transition-colors font-headline font-bold tracking-tight" href="#">Music</a>
+<a class="text-gray-500 hover:text-gray-300 transition-colors font-headline font-bold tracking-tight" href="#">Tasks</a>
+<a class="text-gray-500 hover:text-gray-300 transition-colors font-headline font-bold tracking-tight" href="#">Stats</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-white/5 rounded-full transition-all active:scale-95 flex items-center justify-center" id="theme-switcher" title="Switch Theme">
+<span class="material-symbols-outlined text-[#957DAD]" data-icon="brightness_6">brightness_6</span>
+</button><button class="p-2 hover:bg-white/5 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-[#957DAD]" data-icon="palette">palette</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined text-[#957DAD]" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-12 px-6 max-w-[1440px] mx-auto min-h-screen">
+<div class="bento-grid">
+<!-- Music Player Module: Large Top-Left (8 cols) -->
+<section class="col-span-12 lg:col-span-8 bg-surface-container rounded-xl overflow-hidden relative group">
+<div class="absolute inset-0 z-0 opacity-40 blur-3xl scale-110">
+<div class="w-full h-full bg-gradient-to-br from-secondary-container to-primary-container/20"></div>
+</div>
+<div class="relative z-10 p-8 flex flex-col md:flex-row gap-8 items-center h-full">
+<div class="w-full md:w-64 aspect-square rounded-lg overflow-hidden shadow-2xl relative">
+<img alt="Album Art" class="w-full h-full object-cover" data-alt="Dreamy lofi aesthetic album cover with purple neon lights and a silhouetted city skyline at dusk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUP7zyGo7S26rRVqoatj_5yr-IhGYZHyz6ZNb951uiDNwbtcra4_GPZ0zt7QUfKdU-uamc1Cu8c4E3hFhaV0NK4AMZM5tCRDmEDhKmCWgjnSg-Ycq6r9_lb9DEeXbsy0fkhoV5x7feuPoAe4chxjeMD1OoKZhCuSLZ-n5hloPNKLGeTB30a0SXjvDtvOv7KcmACdgkrZUTYqbz9gfTMpJmCGA0Ve8jlwsnHQMCvrPUWXVpOILK__F-9w6JmWn_f_rvavbfgcCOz3cf"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-6xl text-white" data-icon="play_circle">play_circle</span>
+</div>
+</div>
+<div class="flex-1 w-full flex flex-col justify-between py-2">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-secondary/10 text-secondary text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded">Now Playing</span>
+<span class="text-on-surface-variant text-xs font-medium">Lofi Girl • 48k Listening</span>
+</div>
+<h2 class="text-3xl font-headline font-extrabold text-on-surface mb-1">Midnight Coffee Beats</h2>
+<p class="text-on-surface-variant font-medium">Soulful chillhop for deep work</p>
+</div>
+<div class="mt-8 space-y-4">
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-1/3 rounded-full"></div>
+</div>
+<div class="flex justify-between text-[10px] font-mono text-on-surface-variant tracking-tighter">
+<span>12:45</span>
+<span>38:20</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" data-icon="shuffle">shuffle</span>
+<span class="material-symbols-outlined text-2xl cursor-pointer hover:text-on-surface transition-colors" data-icon="skip_previous">skip_previous</span>
+<button class="w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="pause" data-weight="fill">pause</span>
+</button>
+<span class="material-symbols-outlined text-2xl cursor-pointer hover:text-on-surface transition-colors" data-icon="skip_next">skip_next</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" data-icon="repeat">repeat</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="volume_up">volume_up</span>
+<div class="w-24 bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-on-surface-variant h-full w-3/4"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Pomodoro Timer Module: Medium Top-Right (4 cols) -->
+<section class="col-span-12 lg:col-span-4 bg-surface-container rounded-xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+<div class="absolute -top-12 -right-12 w-32 h-32 bg-tertiary/10 rounded-full blur-3xl"></div>
+<div class="mb-4">
+<span class="px-4 py-1.5 rounded-full bg-tertiary-container/20 text-tertiary text-xs font-bold tracking-widest uppercase">Focus State</span>
+</div>
+<div class="relative w-56 h-56 flex items-center justify-center">
+<!-- Progress Ring -->
+<svg class="absolute inset-0 w-full h-full -rotate-90">
+<circle class="text-surface-container-highest" cx="112" cy="112" fill="transparent" r="100" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-tertiary" cx="112" cy="112" fill="transparent" r="100" stroke="currentColor" stroke-dasharray="628" stroke-dashoffset="200" stroke-width="8"></circle>
+</svg>
+<span class="text-6xl font-headline font-black text-on-surface">25:00</span>
+</div>
+<div class="flex gap-4 mt-8">
+<button class="bg-surface-container-highest hover:bg-surface-bright px-6 py-3 rounded-full font-bold transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="refresh">refresh</span>
+</button>
+<button class="bg-tertiary text-on-tertiary px-10 py-3 rounded-full font-black text-lg shadow-xl shadow-tertiary/20 transition-all active:scale-95">
+                        Start
+                    </button>
+</div>
+<div class="w-full mt-6 flex flex-col items-center gap-3">
+<div class="flex justify-between items-center w-full px-2">
+<span class="text-[10px] font-bold tracking-widest uppercase text-on-surface-variant opacity-60">Presets</span>
+<button class="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-primary hover:text-primary-dim transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+            Add Custom
+        </button>
+</div>
+<div class="flex flex-wrap justify-center gap-2">
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant/30 text-xs font-bold text-on-surface hover:bg-surface-bright transition-all active:scale-95">
+            25/5
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant/30 text-xs font-bold text-on-surface hover:bg-surface-bright transition-all active:scale-95">
+            50/10
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest border border-outline-variant/30 text-xs font-bold text-on-surface hover:bg-surface-bright transition-all active:scale-95">
+            90/15
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-bold text-primary hover:bg-primary/20 transition-all active:scale-95 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="star">star</span>
+            45m
+        </button>
+</div>
+</div><div class="flex gap-6 text-on-surface-variant text-sm font-medium">
+<div class="flex flex-col items-center">
+<span class="text-on-surface font-bold">04</span>
+<span>Sessions</span>
+</div>
+<div class="w-[1px] h-8 bg-outline-variant"></div>
+<div class="flex flex-col items-center">
+<span class="text-on-surface font-bold">1h 40m</span>
+<span>Today</span>
+</div>
+</div>
+</section>
+<!-- Keyboard Shortcuts / Mini Info (4 cols) -->
+<section class="col-span-12 md:col-span-4 bg-surface-container-low rounded-xl p-6 border border-white/5">
+<h3 class="font-headline font-bold text-lg mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="keyboard">keyboard</span>
+                    Shortcuts
+                </h3>
+<div class="space-y-3">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Play / Pause</span>
+<kbd class="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant text-[10px] font-mono">Space</kbd>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Reset Timer</span>
+<kbd class="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant text-[10px] font-mono">Shift + R</kbd>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">New Task</span>
+<kbd class="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant text-[10px] font-mono">Ctrl + N</kbd>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Switch Theme</span>
+<kbd class="px-2 py-1 bg-surface-container-highest rounded border border-outline-variant text-[10px] font-mono">Alt + T</kbd>
+</div>
+</div>
+</section>
+<!-- Task Management: Center-Large (8 cols) -->
+<section class="col-span-12 md:col-span-8 bg-surface-container rounded-xl p-8">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="font-headline font-black text-2xl text-on-surface">Focus Quests</h3>
+<p class="text-on-surface-variant text-sm">3 of 5 completed today</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-highest rounded-lg transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<div class="space-y-4 mb-8">
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl group hover:bg-surface-container-high transition-colors">
+<div class="w-6 h-6 rounded-md border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-sm font-black" data-icon="check">check</span>
+</div>
+<span class="flex-1 text-on-surface-variant line-through font-medium">Research Lofi visual aesthetic trends</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" data-icon="delete">delete</span>
+</div>
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl group hover:bg-surface-container-high transition-colors">
+<div class="w-6 h-6 rounded-md border-2 border-outline-variant flex items-center justify-center"></div>
+<span class="flex-1 text-on-surface font-medium">Develop Pomodoro SVG logic</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" data-icon="delete">delete</span>
+</div>
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl group hover:bg-surface-container-high transition-colors">
+<div class="w-6 h-6 rounded-md border-2 border-outline-variant flex items-center justify-center"></div>
+<span class="flex-1 text-on-surface font-medium">Review Bento Grid implementation</span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" data-icon="delete">delete</span>
+</div>
+</div>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-xl py-4 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/50 transition-all outline-none" placeholder="Add a new focus quest..." type="text"/>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary" data-icon="add">add</span>
+</div>
+</section>
+<!-- Motivational Quote: Small (4 cols) -->
+<section class="col-span-12 md:col-span-4 bg-gradient-to-br from-secondary-container to-on-secondary-fixed-variant rounded-xl p-8 flex flex-col justify-between text-on-secondary-container">
+<span class="material-symbols-outlined text-4xl mb-6 opacity-40" data-icon="format_quote">format_quote</span>
+<div>
+<p class="text-2xl font-headline font-bold leading-tight mb-4">Focus is not about saying yes, it's about saying no to a thousand things.</p>
+<p class="text-sm font-bold tracking-widest uppercase opacity-60">— Steve Jobs</p>
+</div>
+</section>
+<!-- Stats Module: Wide (12 cols) -->
+</div>
+</main>
+<!-- Theme Switcher Floating Action Button -->
+<div class="fixed bottom-8 right-8 z-50 flex flex-col gap-4">
+<button class="w-14 h-14 bg-surface-container-highest glass text-secondary rounded-full flex items-center justify-center shadow-2xl hover:bg-surface-bright transition-all active:scale-90 group">
+<span class="material-symbols-outlined text-2xl" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all active:scale-95 group">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="bolt">bolt</span>
+</button>
+</div>
+<!-- Side Nav Hidden Desktop (Mobile Nav Placeholder) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#1a1a1a] p-4 flex justify-around items-center border-t border-white/5 z-50">
+<span class="material-symbols-outlined text-primary" data-icon="dashboard">dashboard</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="subscriptions">subscriptions</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="waves">waves</span>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="settings">settings</span>
+</nav>
+<script>
+  document.getElementById('theme-switcher').addEventListener('click', function() {
+    const body = document.body;
+    const icon = this.querySelector('.material-symbols-outlined');
+    
+    if (body.classList.contains('theme-forest')) {
+      body.classList.remove('theme-forest');
+      icon.textContent = 'brightness_6';
+    } else {
+      body.classList.add('theme-forest');
+      icon.textContent = 'forest';
+    }
+  });
+</script></body></html>
