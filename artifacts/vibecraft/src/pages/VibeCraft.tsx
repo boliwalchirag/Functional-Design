@@ -73,7 +73,7 @@ function Icon({ name, className = "", style }: { name: string; className?: strin
   );
 }
 
-}
+
 export default function VibeCraft() {
   const [activeNav, setActiveNav] = useState("Focus");
   const [themeForest, setThemeForest] = useState(false);
