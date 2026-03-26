@@ -82,6 +82,11 @@ export default function VibeCraft() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [newTask, setNewTask] = useState("");
 
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customPresets, setCustomPresets] = useState<Array<{ label: string; work: number; rest: number; custom: boolean }>>([]);
+  const [customWork, setCustomWork] = useState("30");
+  const [customBreak, setCustomBreak] = useState("5");
+
   const [quote, setQuote] = useState(FALLBACK_QUOTE);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
@@ -192,6 +197,24 @@ export default function VibeCraft() {
 
   const handleDeleteTask = (id: string) => {
     setTasks((ts) => ts.filter((t) => t.id !== id));
+  };
+
+  const handleAddCustomPreset = (e: React.FormEvent) => {
+    e.preventDefault();
+    const w = Math.min(240, Math.max(1, parseInt(customWork) || 1));
+    const b = Math.min(60, Math.max(1, parseInt(customBreak) || 1));
+    const label = `${w}/${b}`;
+    const preset = { label, work: w, rest: b, custom: true };
+    setCustomPresets((prev) => [...prev, preset]);
+    handlePresetChange(preset);
+    setShowCustomForm(false);
+    setCustomWork("30");
+    setCustomBreak("5");
+  };
+
+  const handleDeleteCustomPreset = (label: string) => {
+    setCustomPresets((prev) => prev.filter((p) => p.label !== label));
+    if (timerPreset.label === label) handlePresetChange(PRESETS[0]);
   };
 
   const handleAddTask = (e: React.FormEvent) => {
@@ -491,10 +514,83 @@ export default function VibeCraft() {
             <div style={{ width: "100%", marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "0 8px" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--on-surface-variant)", opacity: 0.6 }}>Presets</span>
-                <button style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}>
-                  <Icon name="add_circle" style={{ fontSize: 14 } as React.CSSProperties} /> Add Custom
+                <button
+                  onClick={() => setShowCustomForm((v) => !v)}
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: showCustomForm ? "var(--on-surface-variant)" : "var(--primary)", background: "none", border: "none", cursor: "pointer", transition: "color 0.2s" }}
+                >
+                  <Icon name={showCustomForm ? "close" : "add_circle"} style={{ fontSize: 14 } as React.CSSProperties} />
+                  {showCustomForm ? "Cancel" : "Add Custom"}
                 </button>
               </div>
+
+              {/* Custom preset form */}
+              {showCustomForm && (
+                <form
+                  onSubmit={handleAddCustomPreset}
+                  style={{
+                    width: "100%", display: "flex", flexDirection: "column", gap: 10,
+                    backgroundColor: "var(--surface-container-highest)",
+                    borderRadius: 16, padding: "14px 16px",
+                    border: "1px solid rgba(254,178,70,0.2)"
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--on-surface-variant)" }}>
+                        Work (min)
+                      </label>
+                      <input
+                        type="number"
+                        min={1} max={240}
+                        value={customWork}
+                        onChange={(e) => setCustomWork(e.target.value)}
+                        style={{
+                          width: "100%", backgroundColor: "var(--surface-container)",
+                          border: "1px solid var(--outline-variant)", borderRadius: 10,
+                          padding: "8px 10px", color: "var(--on-surface)",
+                          fontSize: 14, fontWeight: 700, textAlign: "center", outline: "none"
+                        }}
+                        onFocus={e => (e.currentTarget.style.borderColor = "var(--primary)")}
+                        onBlur={e => (e.currentTarget.style.borderColor = "var(--outline-variant)")}
+                      />
+                    </div>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--on-surface-variant)" }}>
+                        Break (min)
+                      </label>
+                      <input
+                        type="number"
+                        min={1} max={60}
+                        value={customBreak}
+                        onChange={(e) => setCustomBreak(e.target.value)}
+                        style={{
+                          width: "100%", backgroundColor: "var(--surface-container)",
+                          border: "1px solid var(--outline-variant)", borderRadius: 10,
+                          padding: "8px 10px", color: "var(--on-surface)",
+                          fontSize: 14, fontWeight: 700, textAlign: "center", outline: "none"
+                        }}
+                        onFocus={e => (e.currentTarget.style.borderColor = "var(--primary)")}
+                        onBlur={e => (e.currentTarget.style.borderColor = "var(--outline-variant)")}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: "var(--primary)", color: "var(--on-primary)",
+                      border: "none", cursor: "pointer",
+                      padding: "8px 0", borderRadius: 10,
+                      fontWeight: 800, fontSize: 13, letterSpacing: "0.05em",
+                      transition: "opacity 0.2s"
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+                  >
+                    Save Preset
+                  </button>
+                </form>
+              )}
+
               <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
                 {PRESETS.map((preset) => (
                   <button
@@ -512,6 +608,40 @@ export default function VibeCraft() {
                     {preset.starred && <Icon name="star" style={{ fontSize: 12 } as React.CSSProperties} />}
                     {preset.label}
                   </button>
+                ))}
+                {customPresets.map((preset) => (
+                  <div key={preset.label} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                    <button
+                      onClick={() => handlePresetChange(preset)}
+                      style={{
+                        padding: "6px 10px 6px 12px", borderRadius: "999px 0 0 999px",
+                        backgroundColor: timerPreset.label === preset.label ? "rgba(226,199,252,0.15)" : "var(--surface-container-highest)",
+                        border: timerPreset.label === preset.label ? "1px solid rgba(226,199,252,0.3)" : "1px solid rgba(72,72,71,0.3)",
+                        borderRight: "none",
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        color: timerPreset.label === preset.label ? "#e2c7fc" : "var(--on-surface)",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCustomPreset(preset.label)}
+                      title="Remove preset"
+                      style={{
+                        padding: "6px 8px", borderRadius: "0 999px 999px 0",
+                        backgroundColor: timerPreset.label === preset.label ? "rgba(226,199,252,0.15)" : "var(--surface-container-highest)",
+                        border: timerPreset.label === preset.label ? "1px solid rgba(226,199,252,0.3)" : "1px solid rgba(72,72,71,0.3)",
+                        borderLeft: "1px solid rgba(72,72,71,0.15)",
+                        fontSize: 12, cursor: "pointer", color: "var(--on-surface-variant)",
+                        display: "flex", alignItems: "center", transition: "all 0.2s"
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "var(--destructive)")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "var(--on-surface-variant)")}
+                    >
+                      <Icon name="close" style={{ fontSize: 12 } as React.CSSProperties} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
