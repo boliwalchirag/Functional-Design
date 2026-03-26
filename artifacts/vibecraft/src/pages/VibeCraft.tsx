@@ -1,29 +1,38 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const TRACKS = [
+interface JamendoTrack {
+  id: string;
+  title: string;
+  artist: string;
+  albumArt: string;
+  url: string;
+  duration: number;
+}
+
+const FALLBACK_TRACKS: JamendoTrack[] = [
   {
-    title: "Midnight Coffee Beats",
-    artist: "Lofi Girl",
-    desc: "Soulful chillhop for deep work",
-    listeners: "48k Listening",
-    albumArt: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUP7zyGo7S26rRVqoatj_5yr-IhGYZHyz6ZNb951uiDNwbtcra4_GPZ0zt7QUfKdU-uamc1Cu8c4E3hFhaV0NK4AMZM5tCRDmEDhKmCWgjnSg-Ycq6r9_lb9DEeXbsy0fkhoV5x7feuPoAe4chxjeMD1OoKZhCuSLZ-n5hloPNKLGeTB30a0SXjvDtvOv7KcmACdgkrZUTYqbz9gfTMpJmCGA0Ve8jlwsnHQMCvrPUWXVpOILK__F-9w6JmWn_f_rvavbfgcCOz3cf",
-    duration: 2300,
+    id: "f1",
+    title: "Midnight Coffee",
+    artist: "Lofi Study",
+    albumArt: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=500&auto=format&fit=crop",
+    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    duration: 372,
   },
   {
-    title: "Rain on Glass",
-    artist: "Chillhop Music",
-    desc: "Ambient focus session",
-    listeners: "32k Listening",
-    albumArt: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=300&h=300&fit=crop",
-    duration: 2100,
+    id: "f2",
+    title: "Rainy Window",
+    artist: "Chill Beats",
+    albumArt: "https://images.unsplash.com/photo-1514525253344-f814d074358a?q=80&w=500&auto=format&fit=crop",
+    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    duration: 425,
   },
   {
-    title: "3am Study Session",
-    artist: "Dreamy Beats",
-    desc: "Late night productivity",
-    listeners: "21k Listening",
-    albumArt: "https://images.unsplash.com/photo-1519683109079-d5f539e1542f?w=300&h=300&fit=crop",
-    duration: 1980,
+    id: "f3",
+    title: "Sunset Drive",
+    artist: "Vaporwave",
+    albumArt: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop",
+    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    duration: 345,
   },
 ];
 
@@ -64,9 +73,13 @@ export default function VibeCraft() {
   const [activeNav, setActiveNav] = useState("Focus");
   const [themeForest, setThemeForest] = useState(false);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [tracks, setTracks] = useState<JamendoTrack[]>(FALLBACK_TRACKS);
+  const [tracksLoading, setTracksLoading] = useState(false);
   const [trackIdx, setTrackIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(765);
+  const [audioCurrent, setAudioCurrent] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const [volume, setVolume] = useState(75);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
@@ -106,9 +119,43 @@ export default function VibeCraft() {
 
   useEffect(() => { fetchQuote(); }, [fetchQuote]);
 
-  const track = TRACKS[trackIdx];
-  const totalDuration = track.duration;
-  const progressPct = (progress / totalDuration) * 100;
+  const fetchTracks = useCallback(async () => {
+    setTracksLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(
+        "https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=10&tags=lofi&order=popularity_week",
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (data.results?.length > 0) {
+        setTracks(
+          data.results.map((t: { id: string; name: string; artist_name: string; image?: string; audio: string; duration: number }) => ({
+            id: t.id,
+            title: t.name,
+            artist: t.artist_name,
+            albumArt: t.image || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500&auto=format&fit=crop",
+            url: t.audio,
+            duration: t.duration,
+          }))
+        );
+        setTrackIdx(0);
+        setAudioCurrent(0);
+        setAudioDuration(0);
+      }
+    } catch {
+      // fallback already in state
+    } finally {
+      setTracksLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchTracks(); }, [fetchTracks]);
+
+  const track = tracks[trackIdx] || FALLBACK_TRACKS[0];
+  const progressPct = audioDuration > 0 ? (audioCurrent / audioDuration) * 100 : 0;
 
   useEffect(() => {
     if (themeForest) {
@@ -119,20 +166,10 @@ export default function VibeCraft() {
   }, [themeForest]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setProgress((p) => {
-          if (p >= totalDuration - 1) {
-            handleNextTrack();
-            return 0;
-          }
-          return p + 1;
-        });
-      }, 1000);
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
     }
-    return () => { if (interval) clearInterval(interval); };
-  }, [isPlaying, totalDuration]);
+  }, [volume]);
 
   useEffect(() => {
     if (timerRunning) {
@@ -160,23 +197,36 @@ export default function VibeCraft() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timerRunning, timerMode, timerPreset]);
 
-  const handleNextTrack = useCallback(() => {
-    if (shuffle) {
-      setTrackIdx(Math.floor(Math.random() * TRACKS.length));
+  const togglePlay = useCallback(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
     } else {
-      setTrackIdx((i) => (i + 1) % TRACKS.length);
+      audioRef.current.play().catch(() => {});
     }
-    setProgress(0);
-  }, [shuffle]);
+  }, [isPlaying]);
 
-  const handlePrevTrack = () => {
-    if (progress > 5) {
-      setProgress(0);
-    } else {
-      setTrackIdx((i) => (i - 1 + TRACKS.length) % TRACKS.length);
-      setProgress(0);
+  const handleNextTrack = useCallback(() => {
+    const nextIdx = shuffle
+      ? Math.floor(Math.random() * tracks.length)
+      : (trackIdx + 1) % tracks.length;
+    setTrackIdx(nextIdx);
+    setAudioCurrent(0);
+    setAudioDuration(0);
+    if (isPlaying) setTimeout(() => audioRef.current?.play().catch(() => {}), 100);
+  }, [shuffle, trackIdx, tracks.length, isPlaying]);
+
+  const handlePrevTrack = useCallback(() => {
+    if (audioCurrent > 3) {
+      if (audioRef.current) audioRef.current.currentTime = 0;
+      return;
     }
-  };
+    const prevIdx = (trackIdx - 1 + tracks.length) % tracks.length;
+    setTrackIdx(prevIdx);
+    setAudioCurrent(0);
+    setAudioDuration(0);
+    if (isPlaying) setTimeout(() => audioRef.current?.play().catch(() => {}), 100);
+  }, [audioCurrent, trackIdx, tracks.length, isPlaying]);
 
   const handleTimerReset = () => {
     setTimerRunning(false);
@@ -229,7 +279,7 @@ export default function VibeCraft() {
       if (e.target instanceof HTMLInputElement) return;
       if (e.code === "Space") {
         e.preventDefault();
-        setIsPlaying((p) => !p);
+        togglePlay();
       }
       if (e.shiftKey && e.key === "R") {
         handleTimerReset();
@@ -240,7 +290,7 @@ export default function VibeCraft() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [togglePlay]);
 
   const timerTotal = timerMode === "work" ? timerPreset.work * 60 : timerPreset.rest * 60;
   const timerPct = 1 - timerSeconds / timerTotal;
@@ -322,6 +372,28 @@ export default function VibeCraft() {
             className="music-player-section"
           >
             <style>{`@media(min-width:1024px){.music-player-section{grid-column:span 8!important}}`}</style>
+
+            {/* Hidden Audio Element */}
+            <audio
+              ref={audioRef}
+              src={track.url}
+              onTimeUpdate={() => {
+                if (audioRef.current) setAudioCurrent(audioRef.current.currentTime);
+              }}
+              onDurationChange={() => {
+                if (audioRef.current) setAudioDuration(audioRef.current.duration);
+              }}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => {
+                if (repeat) {
+                  audioRef.current?.play().catch(() => {});
+                } else {
+                  handleNextTrack();
+                }
+              }}
+            />
+
             {/* Ambient gradient */}
             <div style={{
               position: "absolute", inset: 0, zIndex: 0,
@@ -335,12 +407,14 @@ export default function VibeCraft() {
               <div style={{ width: 240, height: 240, borderRadius: 16, overflow: "hidden", flexShrink: 0, boxShadow: "0 25px 50px rgba(0,0,0,0.5)", position: "relative" }} className="album-art">
                 <style>{`@media(min-width:768px){.album-art{width:256px!important;height:256px!important}}`}</style>
                 <img
+                  key={track.id}
                   src={track.albumArt}
-                  alt="Album Art"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  alt={track.title}
+                  referrerPolicy="no-referrer"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", transition: "opacity 0.3s" }}
                 />
                 <div
-                  onClick={() => setIsPlaying((p) => !p)}
+                  onClick={togglePlay}
                   style={{
                     position: "absolute", inset: 0,
                     background: "rgba(0,0,0,0.3)",
@@ -356,33 +430,53 @@ export default function VibeCraft() {
 
               {/* Player Controls */}
               <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", paddingTop: 8, paddingBottom: 8 }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <span style={{
-                      background: "rgba(226,199,252,0.1)", color: "#e2c7fc",
-                      fontSize: 10, fontWeight: 700, letterSpacing: "0.15em",
-                      textTransform: "uppercase", padding: "4px 8px", borderRadius: 8
-                    }}>Now Playing</span>
-                    <span style={{ color: "var(--on-surface-variant)", fontSize: 12, fontWeight: 500 }}>{track.artist} • {track.listeners}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ maxWidth: "85%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <span style={{
+                        background: "rgba(226,199,252,0.1)", color: "#e2c7fc",
+                        fontSize: 10, fontWeight: 700, letterSpacing: "0.15em",
+                        textTransform: "uppercase", padding: "4px 8px", borderRadius: 8
+                      }}>Now Playing</span>
+                      <span style={{ color: "var(--on-surface-variant)", fontSize: 12, fontWeight: 500 }}>{track.artist}</span>
+                    </div>
+                    <h2 className="font-headline" style={{ fontSize: 28, fontWeight: 800, marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{track.title}</h2>
+                    <p style={{ color: "var(--on-surface-variant)", fontWeight: 500, fontSize: 13 }}>Jamendo Radio · lofi &amp; focus</p>
                   </div>
-                  <h2 className="font-headline" style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>{track.title}</h2>
-                  <p style={{ color: "var(--on-surface-variant)", fontWeight: 500 }}>{track.desc}</p>
+                  <button
+                    onClick={fetchTracks}
+                    disabled={tracksLoading}
+                    title="Fetch new tracks from Jamendo"
+                    style={{
+                      background: "none", border: "none", cursor: tracksLoading ? "default" : "pointer",
+                      color: "var(--on-surface-variant)", padding: 8, borderRadius: "50%",
+                      display: "flex", alignItems: "center", transition: "color 0.2s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "var(--primary)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--on-surface-variant)")}
+                  >
+                    <Icon
+                      name="refresh"
+                      style={{ fontSize: 22, animation: tracksLoading ? "spin 1s linear infinite" : "none" } as React.CSSProperties}
+                    />
+                  </button>
                 </div>
                 <div style={{ marginTop: 32 }}>
                   {/* Progress Bar */}
                   <div
                     style={{ width: "100%", height: 6, backgroundColor: "var(--surface-container-highest)", borderRadius: 999, overflow: "hidden", cursor: "pointer" }}
                     onClick={(e) => {
+                      if (!audioRef.current || !audioDuration) return;
                       const rect = e.currentTarget.getBoundingClientRect();
                       const pct = (e.clientX - rect.left) / rect.width;
-                      setProgress(Math.floor(pct * totalDuration));
+                      audioRef.current.currentTime = pct * audioDuration;
                     }}
                   >
                     <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "var(--primary)", borderRadius: 999, transition: "width 0.5s linear" }} />
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontFamily: "monospace", color: "var(--on-surface-variant)", marginTop: 4 }}>
-                    <span>{formatTime(progress)}</span>
-                    <span>{formatTime(totalDuration)}</span>
+                    <span>{formatTime(Math.floor(audioCurrent))}</span>
+                    <span>{formatTime(Math.floor(audioDuration || track.duration))}</span>
                   </div>
 
                   {/* Controls Row */}
@@ -398,7 +492,7 @@ export default function VibeCraft() {
                         <Icon name="skip_previous" style={{ fontSize: 28 } as React.CSSProperties} />
                       </button>
                       <button
-                        onClick={() => setIsPlaying((p) => !p)}
+                        onClick={togglePlay}
                         style={{
                           width: 56, height: 56, backgroundColor: "var(--primary)", color: "var(--on-primary)",
                           borderRadius: "50%", border: "none", cursor: "pointer",

@@ -1,0 +1,233 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, RefreshCw, Music } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Track } from '../types';
+
+const FALLBACK_TRACKS: Track[] = [
+  {
+    id: 'f1',
+    title: 'Midnight Coffee',
+    artist: 'Lofi Study',
+    cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=500&auto=format&fit=crop',
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    duration: '6:12'
+  },
+  {
+    id: 'f2',
+    title: 'Rainy Window',
+    artist: 'Chill Beats',
+    cover: 'https://images.unsplash.com/photo-1514525253344-f814d074358a?q=80&w=500&auto=format&fit=crop',
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    duration: '7:05'
+  },
+  {
+    id: 'f3',
+    title: 'Sunset Drive',
+    artist: 'Vaporwave',
+    cover: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=500&auto=format&fit=crop',
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+    duration: '5:45'
+  }
+];
+
+export default function MusicPlayer() {
+  const [tracks, setTracks] = useState<Track[]>(FALLBACK_TRACKS);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const fetchTracks = async () => {
+    setLoading(true);
+    try {
+      // Attempt to fetch from Jamendo with a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(
+        'https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=10&tags=lofi&order=popularity_week',
+        { signal: controller.signal }
+      );
+      
+      clearTimeout(timeoutId);
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const formattedTracks = data.results.map((t: any) => ({
+          id: t.id,
+          title: t.name,
+          artist: t.artist_name,
+          cover: t.image || `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500&auto=format&fit=crop`,
+          url: t.audio,
+          duration: Math.floor(t.duration / 60) + ':' + (t.duration % 60).toString().padStart(2, '0')
+        }));
+        setTracks(formattedTracks);
+      }
+    } catch (error) {
+      console.warn('Music API failed, using fallback tracks:', error);
+      // Fallback is already set in state or we keep the current tracks
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTracks();
+  }, []);
+
+  const track = tracks[currentTrackIndex] || FALLBACK_TRACKS[0];
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Playback failed:", e));
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const nextTrack = () => {
+    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+    setProgress(0);
+    // Auto-play next track if it was playing
+    if (isPlaying) {
+      setTimeout(() => audioRef.current?.play(), 100);
+    }
+  };
+
+  const prevTrack = () => {
+    setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+    setProgress(0);
+    if (isPlaying) {
+      setTimeout(() => audioRef.current?.play(), 100);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const current = audioRef.current.currentTime;
+      const duration = audioRef.current.duration;
+      if (duration) {
+        setProgress((current / duration) * 100);
+      }
+    }
+  };
+
+  return (
+    <section className="col-span-12 lg:col-span-8 bg-surface-container rounded-3xl overflow-hidden relative group min-h-[320px] border border-white/5">
+      <audio 
+        ref={audioRef} 
+        src={track.url} 
+        onEnded={nextTrack}
+        onTimeUpdate={handleTimeUpdate}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
+      
+      <div className="absolute inset-0 z-0 opacity-20 blur-3xl scale-110">
+        <div className="w-full h-full bg-gradient-to-br from-secondary to-primary"></div>
+      </div>
+      
+      <div className="relative z-10 p-8 flex flex-col md:flex-row gap-8 items-center h-full">
+        <div className="w-full md:w-64 aspect-square rounded-2xl overflow-hidden shadow-2xl relative group/cover">
+          <AnimatePresence mode="wait">
+            <motion.img 
+              key={track.id}
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              src={track.cover} 
+              alt={track.title}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </AnimatePresence>
+          <div 
+            onClick={togglePlay}
+            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity cursor-pointer"
+          >
+            {isPlaying ? <Pause className="w-16 h-16 text-white fill-white" /> : <Play className="w-16 h-16 text-white fill-white" />}
+          </div>
+        </div>
+
+        <div className="flex-1 w-full flex flex-col justify-between py-2">
+          <div className="flex justify-between items-start">
+            <div className="max-w-[80%]">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-secondary/20 text-secondary text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded flex items-center gap-1">
+                  <Music className="w-3 h-3" />
+                  Now Playing
+                </span>
+                <span className="text-white/40 text-xs font-medium truncate">{track.artist}</span>
+              </div>
+              <h2 className="text-2xl font-headline font-extrabold text-white mb-1 truncate">{track.title}</h2>
+              <p className="text-white/40 font-medium text-sm">Digital Sanctuary Radio</p>
+            </div>
+            <button 
+              onClick={fetchTracks} 
+              disabled={loading}
+              className="p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-primary transition-all active:rotate-180"
+              title="Fetch New Music"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
+          <div className="mt-8 space-y-4">
+            <div 
+              className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden cursor-pointer relative"
+              onClick={(e) => {
+                if (audioRef.current) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const pct = x / rect.width;
+                  audioRef.current.currentTime = pct * audioRef.current.duration;
+                }
+              }}
+            >
+              <motion.div 
+                className="bg-primary h-full rounded-full" 
+                animate={{ width: `${progress}%` }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-white/40 tracking-tighter">
+              <span>{audioRef.current ? Math.floor(audioRef.current.currentTime / 60) + ':' + Math.floor(audioRef.current.currentTime % 60).toString().padStart(2, '0') : '0:00'}</span>
+              <span>{track.duration}</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <Shuffle className="w-5 h-5 text-white/40 cursor-pointer hover:text-white transition-colors" />
+                <SkipBack 
+                  className="w-6 h-6 text-white cursor-pointer hover:text-primary transition-colors" 
+                  onClick={prevTrack}
+                />
+                <button 
+                  onClick={togglePlay}
+                  className="w-14 h-14 bg-primary text-black rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform hover:scale-105"
+                >
+                  {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+                </button>
+                <SkipForward 
+                  className="w-6 h-6 text-white cursor-pointer hover:text-primary transition-colors" 
+                  onClick={nextTrack}
+                />
+                <Repeat className="w-5 h-5 text-white/40 cursor-pointer hover:text-white transition-colors" />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Volume2 className="w-5 h-5 text-white/40" />
+                <div className="w-24 bg-surface-container-highest h-1 rounded-full overflow-hidden">
+                  <div className="bg-white/40 h-full w-3/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
